@@ -1,0 +1,28 @@
+name: fruta_no_pe
+description: Aplicativo de mapeamento de árvores frutíferas
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_map: ^6.0.0
+  latlong2: ^0.9.0
+  provider: ^6.0.5
+  json_annotation: ^4.8.1
+  geojson_vi: ^2.0.1
+  proj4dart: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  test: ^1.24.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/arvore.json
+    - assets/arvore.geojson
+    - assets/arvore_amostra.geojson
+
