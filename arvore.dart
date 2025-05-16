@@ -17,7 +17,7 @@ class Arvore {
   final String descricao;
   final bool tipoEspe0; // Frutífera
   final bool tipoEspe1; // Flor
-  final String tipoEspec;
+  final int tipoEspec;
 
   Arvore({
     required this.id,
@@ -49,6 +49,19 @@ class Arvore {
       final s = val.toString().toLowerCase().trim();
       return ['verdadeiro', 'true', 'v', 't', '1'].contains(s);
 }
+    // Calcula o valor de tipoEspec
+    final String? tipoEspecStr = props['tipo_espec']?.toString();
+    int parsedTipoEspec = 0; // Valor padrão
+    if (tipoEspecStr != null && tipoEspecStr.isNotEmpty) {
+      // Tenta converter para double primeiro para lidar com "XXX.0", depois para int
+      final double? valAsDouble = double.tryParse(tipoEspecStr);
+      if (valAsDouble != null) {
+        parsedTipoEspec = valAsDouble.toInt();
+      }
+      // Se valAsDouble for null (ex: para strings não numéricas), parsedTipoEspec permanece 0
+    }
+
+    print('GeoJSON props[\'tipo_espec\'] = "${props['tipo_espec']}" \t→ Arvore.tipoEspec = $parsedTipoEspec');
 
     return Arvore(
       id: props['id']?.toString() ?? '',
@@ -67,7 +80,7 @@ class Arvore {
       descricao: props['descricao']?.toString() ?? '',
       tipoEspe0: parseBool(props['tipo_espe0']),
       tipoEspe1: parseBool(props['tipo_espe1']),
-      tipoEspec: props['tipo_espec']?.toString() ?? '',
+      tipoEspec: parsedTipoEspec,
     );
   }
   static int _parseIdade(dynamic valor) {
