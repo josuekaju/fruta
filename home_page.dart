@@ -4,6 +4,8 @@ import 'package:flutter_map/flutter_map.dart';
 import '../models/arvore.dart';
 import '../services/geojson_loader.dart';
 import '../widgets/mapa_widget.dart';
+import '../services/localizacao_service.dart';
+import '../services/rota_service.dart'; // Importar o novo serviço de rota
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,13 +15,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final MapController mapController = MapController();
+  final RotaService _rotaService = RotaService(); // Instância do serviço de rota
   LatLngBounds? mapaBounds;
   bool _isLoading = true; // Adiciona um estado para controlar o carregamento inicial
   String? _loadingError; // Adiciona um estado para armazenar mensagens de erro
+  LatLng? _currentLocationMarkerPosition; // Novo estado para a posição do marcador do usuário
+  List<LatLng> _pontosDaRota = []; // Estado para armazenar os pontos da rota
+  bool _exibirRotaNoMapa = false; // Estado para controlar a visibilidade da rota
 
   @override
   void initState() {
     super.initState();
+    print('🏠 HomePage.initState chamado');
     _carregarDadosArvores();
   }
 
@@ -77,6 +84,20 @@ class _HomePageState extends State<HomePage> {
     }
     if (mounted) setState(() {});
   }
+
+  // Função para solicitar e definir a rota a ser exibida no mapa
+  Future<void> _mostrarRotaNoMapa(LatLng origem, LatLng destino) async {
+    final List<LatLng> pontos = await _rotaService.obterPontosDaRota(origem, destino);
+    if (mounted) {
+      setState(() {
+        _pontosDaRota = pontos;
+        _exibirRotaNoMapa = true;
+      });
+    }
+  }
+
+  // Função para limpar a rota do mapa (pode ser chamada ao fechar o dialog ou mudar de árvore)
+  void _limparRotaDoMapa() => setState(() { _pontosDaRota = []; _exibirRotaNoMapa = false; });
 
   List<Arvore> aplicarFiltro() {
     final List<Arvore> base = switch (filtroSelecionado) {
@@ -190,6 +211,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    print('🔧 HomePage.build executado');
     return Scaffold(
       appBar: AppBar(title: const Text('Fruta no Pé')),
       drawer: construirDrawer(),
@@ -204,6 +226,11 @@ class _HomePageState extends State<HomePage> {
                 setState(() => mapaBounds = bounds);
               }
             },
+            currentUserLocation: _currentLocationMarkerPosition, // Passar a posição atual
+            subfiltroEspecial: subfiltroEspecial, // Passar o subfiltro para o MapaWidget
+            pontosDaRota: _pontosDaRota, // Passar os pontos da rota
+            exibirRota: _exibirRotaNoMapa, // Passar o controle de visibilidade da rota
+            onMostrarRota: _mostrarRotaNoMapa, // Passar a callback para mostrar a rota
           ),
           if (_isLoading)
             // Tela de carregamento personalizada
@@ -219,7 +246,7 @@ class _HomePageState extends State<HomePage> {
                     SizedBox(height: 20),
                     Text(
                       'A natureza exige paciência...',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+                      style: TextStyle(color: Color.fromARGB(255, 8, 43, 10), fontSize: 24),
                     ),
                   ],
                 ),
@@ -232,12 +259,39 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.red.withOpacity(0.6),
                 child: Text(
                   _loadingError!,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Color.fromARGB(255, 189, 189, 189)),
                   textAlign: TextAlign.center,
                 ),
               ),
             ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final posicao = await LocalizacaoService.obterLocalizacao();
+          if (posicao != null) {
+            final newLocation = LatLng(posicao.latitude, posicao.longitude);
+            if (mounted) { // Verifica se o widget ainda está montado
+              setState(() {
+                _currentLocationMarkerPosition = newLocation; // Atualiza a posição do marcador
+                _limparRotaDoMapa(); // Limpa qualquer rota existente ao buscar nova localização
+              });
+            }
+            mapController.move(
+              newLocation,
+              17.0, // Zoom level, ajuste conforme necessário
+            );
+          } else {
+            // Verifica se o widget ainda está montado antes de mostrar o SnackBar
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Não foi possível obter sua localização.')),
+            );
+          }
+        },
+        tooltip: 'Minha Localização',
+        child: const Icon(Icons.my_location),
       ),
     );
   }
@@ -276,6 +330,7 @@ class _HomePageState extends State<HomePage> {
                   setState(() {
                     filtroSelecionado = value!;
                     subfiltroEspecial = null;
+                    _limparRotaDoMapa(); // Limpa a rota ao mudar de filtro principal
                   });
                   Navigator.pop(context);
                 },
@@ -306,7 +361,10 @@ class _HomePageState extends State<HomePage> {
                   value: s,
                   groupValue: subfiltroEspecial,
                   onChanged: (value) {
-                    setState(() => subfiltroEspecial = value);
+                    setState(() {
+                       subfiltroEspecial = value;
+                       _limparRotaDoMapa(); // Limpa a rota ao mudar de subfiltro
+                    });
                     Navigator.pop(context);
                   },
                 ),

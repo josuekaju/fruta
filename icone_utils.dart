@@ -9,23 +9,14 @@ String getEmojiForArvore(
   final nome = (arvore.nomeComum ?? '').trim().toLowerCase();
   final nomeCientifico = (arvore.nomeCientifico ?? '').trim().toLowerCase();
 
-  // PRIORIDADE MÁXIMA: Ícones de Recordes (Medalhas)
-  // Se um subfiltro de recordes estiver ativo e a árvore for uma recordista.
-  if (medalhaCallback != null && subfiltroEspecial != null && subfiltroEspecial.isNotEmpty) {
-    final medalha = medalhaCallback(subfiltroEspecial, arvore);
-    if (medalha == ' 🥇') return '🥇'; // Corrigido: Adicionado espaço
-    if (medalha == ' 🥈') return '🥈'; // Corrigido: Adicionado espaço
-    if (medalha == ' 🥉') return '🥉'; // Corrigido: Adicionado espaço
-  }
-
   // --- SEÇÃO: FRUTÍFERAS ---
   // Aplicar estas regras se a árvore estiver marcada como frutífera (arvore.tipoEspe0).
   if (arvore.tipoEspe0) {
     // Casos Específicos e de Advertência (FRUTAS com aviso)
-    if (nome.contains('aroeira-pimenta') || nomeCientifico.contains('schinus terebinthifolia')) return '⚠️🌶️';
-    if (nome.contains('figueira mata pau') || nomeCientifico.contains('ficus insipida')) return '⚠️🌿';
-    if (nome.contains('porangaba') || nomeCientifico.contains('cordia ecalyculata')) return '⚠️🍵'; // Mais medicinal/chá
-    if (nome.contains('espinheira-santa') || nomeCientifico.contains('monteverdia ilicifolia')) return '⚠️💊'; // Medicinal
+    if (nome.contains('aroeira-pimenta') || nomeCientifico.contains('schinus terebinthifolia')) return '🌶️';
+    if (nome.contains('figueira mata pau') || nomeCientifico.contains('ficus insipida')) return '⚠️';
+    if (nome.contains('porangaba') || nomeCientifico.contains('cordia ecalyculata')) return '🍵'; // Mais medicinal/chá
+    if (nome.contains('espinheira-santa') || nomeCientifico.contains('monteverdia ilicifolia')) return '💊'; // Medicinal
 
     // Frutas mais comuns e com emojis dedicados
     if (nome.contains('mangueira') || nome.contains('manga')) return '🥭';
@@ -120,19 +111,19 @@ String getEmojiForArvore(
   // --- SEÇÃO: FLORES E ORNAMENTAIS (Aplicar se NÃO for frutífera prioritária OU se for categoria "ornamental")
 
   // Plantas Tóxicas com Flores Vistosas
-  if (nomeCientifico.contains('nerium oleander')) return '⚠️🌸';
-  if (nomeCientifico.contains('thevetia peruviana')) return '⚠️🌼';
-  if (nomeCientifico.contains('allamanda cathartica')) return '⚠️🌼';
-  if (nomeCientifico.contains('brugmansia suaveolens')) return '⚠️🌸';
-  if (nomeCientifico.contains('melia azedarach')) return '⚠️🌸';
-  if (nomeCientifico.contains('jatropha multifida')) return '⚠️🔴';
-  if (nomeCientifico.contains('robinia pseudoacacia')) return '⚠️🌸';
-  if (nomeCientifico.contains('solanum mauritianum')) return '⚠️💜';
+  if (nomeCientifico.contains('nerium oleander')) return '⚠️';
+  if (nomeCientifico.contains('thevetia peruviana')) return '⚠️';
+  if (nomeCientifico.contains('allamanda cathartica')) return '⚠️';
+  if (nomeCientifico.contains('brugmansia suaveolens')) return '⚠️';
+  if (nomeCientifico.contains('melia azedarach')) return '⚠️';
+  if (nomeCientifico.contains('jatropha multifida')) return '⚠️';
+  if (nomeCientifico.contains('robinia pseudoacacia')) return '⚠️';
+  if (nomeCientifico.contains('solanum mauritianum')) return '⚠️';
 
   // Plantas Tóxicas (Foco na Folhagem/Forma)
-  if (nomeCientifico.contains('euphorbia tirucalli')) return '⚠️🌿';
-  if (nomeCientifico.contains('euphorbia pulcherrima')) return '⚠️🔴';
-  if (nomeCientifico.contains('euphorbia candelabrum')) return '⚠️🌵';
+  if (nomeCientifico.contains('euphorbia tirucalli')) return '⚠️';
+  if (nomeCientifico.contains('euphorbia pulcherrima')) return '⚠️';
+  if (nomeCientifico.contains('euphorbia candelabrum')) return '⚠️';
 
   // Ipês
   if (nome.contains('ipê-roxo') || nomeCientifico.contains('handroanthus impetiginosus') || nomeCientifico.contains('handroanthus heptaphyllus')) return '🌸';
