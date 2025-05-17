@@ -4,14 +4,12 @@ import 'package:latlong2/latlong.dart';
 import 'dart:async'; // Importar para usar o Timer
 import '../models/arvore.dart';
 import '../utils/icone_utils.dart'; // Importa o novo arquivo
+import '../pages/sugestao_page.dart'; // Importar a nova tela de sugestão
+import '../services/localizacao_service.dart'; // Para obter a localização atual
 
-Color corPorTipo(Arvore arvore, MedalhaCallback? medalhaCallback, String? subfiltroEspecial) {
-  // Prioridade para cores de medalha se for um recordista
-  final medalha = medalhaCallback?.call(subfiltroEspecial ?? '', arvore);
-  if (medalha == ' 🥇') return Colors.amber.shade700;
-  if (medalha == ' 🥈') return Colors.grey.shade400;
-  if (medalha == ' 🥉') return Colors.brown.shade400;
 
+Color getEmojiColor(Arvore arvore) {
+  // Esta função agora define apenas a cor do emoji, sem considerar medalhas.
   // Regras de cores baseadas em arvore.tipoEspec (que agora é um int)
   switch (arvore.tipoEspec) { // arvore.tipoEspec é um int
     case 0: // Exemplo: Não catalogada
@@ -28,6 +26,15 @@ Color corPorTipo(Arvore arvore, MedalhaCallback? medalhaCallback, String? subfil
   }
 }
 
+Color? getMedalBorderColor(Arvore arvore, MedalhaCallback? medalhaCallback, String? subfiltroEspecial) {
+  if (medalhaCallback != null && subfiltroEspecial != null && subfiltroEspecial.isNotEmpty) {
+    final medalha = medalhaCallback(subfiltroEspecial, arvore);
+    if (medalha == ' 🥇') return Colors.amber.shade700;
+    if (medalha == ' 🥈') return Colors.grey.shade600; // Um cinza um pouco mais escuro para borda
+    if (medalha == ' 🥉') return Colors.brown.shade700; // Um marrom mais escuro para borda
+  }
+  return null; // Nenhuma cor de borda especial
+}
 
 typedef MedalhaCallback = String Function(String categoria, Arvore arvore);
 
@@ -37,6 +44,11 @@ class MapaWidget extends StatefulWidget {
   final void Function(LatLngBounds?)? onBoundsChanged;
   final MedalhaCallback? medalhaCallback;
   final String? subfiltroEspecial; // Adicionado para passar para corPorTipo
+  final LatLng? currentUserLocation; // Novo parâmetro para a localização do usuário
+  final List<LatLng> pontosDaRota; // Pontos para desenhar a rota
+  final bool exibirRota; // Controla se a rota deve ser exibida
+  final Function(LatLng origem, LatLng destino) onMostrarRota; // Callback para solicitar a rota
+
 
   const MapaWidget({
     super.key,
@@ -45,6 +57,10 @@ class MapaWidget extends StatefulWidget {
     this.onBoundsChanged,
     this.medalhaCallback,
     this.subfiltroEspecial, // Adicionado para passar para corPorTipo
+    this.currentUserLocation, // Adicionado ao construtor
+    required this.pontosDaRota,
+    required this.exibirRota,
+    required this.onMostrarRota,
   });
 
   @override
@@ -65,7 +81,6 @@ class _MapaWidgetState extends State<MapaWidget> {
   void didUpdateWidget(covariant MapaWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.subfiltroEspecial != oldWidget.subfiltroEspecial) {
-      print('[MapaWidget didUpdateWidget] subfiltroEspecial mudou de "${oldWidget.subfiltroEspecial}" para "${widget.subfiltroEspecial}"');
     }
     // Você pode adicionar verificações para outras propriedades se necessário, como widget.arvores
   }
@@ -75,48 +90,52 @@ class _MapaWidgetState extends State<MapaWidget> {
     return FlutterMap(
       mapController: widget.controller,
       options: MapOptions(
-        initialCenter: LatLng(-24.7132, -53.7403),
-        initialZoom: 13,
-        onPositionChanged: (MapPosition pos, bool hasGesture) {
-          if (widget.onBoundsChanged != null) {
-            if (_debounce?.isActive ?? false) _debounce!.cancel();
-            _debounce = Timer(_debounceDuration, () {
-              widget.onBoundsChanged!(pos.bounds);
-            });
-          }
+        initialCenter: widget.currentUserLocation ?? const LatLng(-24.7132, -53.7403), // Centraliza no usuário se disponível
+        initialZoom: 13.0, // Zoom inicial
+        onPositionChanged: (MapCamera pos, bool hasGesture) {
+          final bounds = pos.visibleBounds;
+          widget.onBoundsChanged?.call(bounds);
         },
       ),
       children: [
+        // mapa_widget.dart
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          // subdomains: const ['a', 'b', 'c'], // Removed as per OSM policy
-          userAgentPackageName: 'com.seuprojeto.frutadope', // Replace with your actual package name
-          tileBuilder: (context, tileWidget, tile) {
-            // The 'tile' argument is not used in this builder, but it's part of the signature.
-            // 'tileWidget' is the widget flutter_map would normally build for the tile.
-            return Stack(
-              children: [
-                tileWidget, // The actual tile image
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.05), // Semi-transparent overlay
-                    child: const Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+          subdomains: ['a', 'b', 'c'],
+          userAgentPackageName: 'com.frutanope.app',
+          tileProvider: NetworkTileProvider(),
         ),
         MarkerLayer(
           markers: widget.arvores.map<Marker>((arvore) { // Acessar arvores via widget.arvores
             
-            print('[MapaWidget build] Construindo marcador para ${arvore.id}. SubfiltroEspecial atual: "${widget.subfiltroEspecial}"');
+            print('buildando marcador para ${arvore}');
+            
+            Widget emojiWidget = Text(
+              getEmojiForArvore(
+                arvore,
+                // medalhaCallback e subfiltroEspecial não são mais usados por getEmojiForArvore para retornar medalhas
+                // mas podem ser mantidos se houver outra lógica futura que os utilize.
+                // Para esta implementação de borda, eles não afetam o emoji retornado.
+                medalhaCallback: widget.medalhaCallback,
+                subfiltroEspecial: widget.subfiltroEspecial,
+              ),
+              style: TextStyle(
+                fontSize: 22.0,
+                color: getEmojiColor(arvore), // Usa a nova função para cor do emoji
+              ),
+            );
+
+            final Color? borderColor = getMedalBorderColor(arvore, widget.medalhaCallback, widget.subfiltroEspecial);
+
+            if (borderColor != null) {
+              emojiWidget = Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle, // Ou BoxShape.rectangle
+                  border: Border.all(color: borderColor, width: 2.5), // Ajuste a largura da borda
+                ),
+                child: Center(child: emojiWidget), // Centraliza o emoji dentro do contorno
+              );
+            }
 
             return Marker(
               width: 40.0,
@@ -132,6 +151,27 @@ class _MapaWidgetState extends State<MapaWidget> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Botão de Rota
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: IconButton(
+                              icon: const Icon(Icons.directions, color: Colors.blue),
+                              tooltip: 'Traçar rota até esta árvore',
+                              onPressed: () async {
+                                Navigator.pop(context); // Fecha o AlertDialog
+                                final posicaoAtual = await LocalizacaoService.obterLocalizacao();
+                                if (posicaoAtual != null && mounted) {
+                                  final origem = LatLng(posicaoAtual.latitude, posicaoAtual.longitude);
+                                  final destino = LatLng(arvore.latitude, arvore.longitude);
+                                  widget.onMostrarRota(origem, destino);
+                                } else if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Não foi possível obter sua localização para traçar a rota.')),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
                           if (arvore.nomeCientifico.isNotEmpty)
                             Text('Nome científico: ${arvore.nomeCientifico}'),
                           Text('Bairro: ${arvore.bairro}'),
@@ -166,25 +206,38 @@ class _MapaWidgetState extends State<MapaWidget> {
                           onPressed: () => Navigator.pop(context),
                           child: const Text('Fechar'),
                         ),
+                        TextButton.icon(
+                          icon: Icon(Icons.edit, color: Colors.orange.shade700),
+                          label: Text('Errado ou Atualizar', style: TextStyle(color: Colors.orange.shade700)),
+                          onPressed: () {
+                            // Fecha o AlertDialog atual antes de navegar
+                            Navigator.pop(context); 
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => SugestaoPage(arvore: arvore),
+                            ));
+                          },
+                        ),
                       ],
                     ),
                   );
                 },
-                child: Text(
-                  getEmojiForArvore(
-                    arvore,
-                    medalhaCallback: widget.medalhaCallback,
-                    subfiltroEspecial: widget.subfiltroEspecial,
-                  ),
-                  style: TextStyle(
-                    fontSize: 22.0, // Ajuste o tamanho conforme necessário
-                    color: corPorTipo(arvore, widget.medalhaCallback, widget.subfiltroEspecial),
-                  ),
-                ),
+                child: emojiWidget, // Usa o widget do emoji, possivelmente com borda
               ),
             );
           }).toList(),
         ),
+        
+        // Camada para desenhar a rota
+        if (widget.exibirRota && widget.pontosDaRota.length >= 2)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: widget.pontosDaRota,
+                strokeWidth: 5.0,
+                color: Colors.blue.withOpacity(0.8),
+              ),
+            ],
+          ),
       ],
     );
   }
