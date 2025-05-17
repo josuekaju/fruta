@@ -2,6 +2,8 @@
 mapeamento de arvores
 
 
+
+
 fruta_no_pe/
 ├── android/              <-- Diretório do projeto Android nativo
 │   ├── app/              <-- Módulo principal da aplicação Android
