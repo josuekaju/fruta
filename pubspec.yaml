@@ -5,24 +5,55 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
+  flutter_localizations:
+    sdk: flutter
   flutter:
     sdk: flutter
-  flutter_map: ^6.2.1
+  flutter_map: ^8.1.1
+  open_route_service: ^1.2.2
   latlong2: ^0.9.0
-  provider: ^6.0.5
+  provider: ^6.1.1
   json_annotation: ^4.8.1
   geojson_vi: ^2.0.1
   proj4dart: ^2.1.0
+  geolocator: ^14.0.0
+  flutter_map_cancellable_tile_provider: ^3.1.0
+  permission_handler: ^12.0.0+1
+  image_picker: ^1.0.7
+  url_launcher: ^6.1.6
+  cupertino_icons: ^1.0.6
+  http: ^1.2.2
+  csv: ^6.0.0
+  uuid: ^4.3.3
+
+
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  test: ^1.24.0
+  test: ^1.24.3
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/arvore.json
-    - assets/arvore.geojson
-    - assets/arvore_amostra.geojson
+    - assets/arvore_palotina.geojson
+    - assets/arvore_toledo.geojson
 
+    - assets/images/treant.png
+    - assets/especies_com_contagem_.csv
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+
+
+fonts:
+  - family: Roboto
+    fonts:
+      - asset: assets/fonts/Roboto-Regular.ttf
+      - asset: assets/fonts/Roboto-Bold.ttf
+      - asset: assets/fonts/Roboto-Medium.ttf
+      - asset: assets/fonts/Roboto-Light.ttf
+        weight: 700
