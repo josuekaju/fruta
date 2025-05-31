@@ -1,0 +1,34 @@
+[
+  {
+    "id": "1748673621973",
+    "latitude": -24.729639931332045,
+    "longitude": -53.74990441748845,
+    "nomeComum": "maçã",
+    "nomeCientifico": "foto",
+    "descricao": "descrição",
+    "enderecoAproximado": "rua",
+    "bairro": "setor",
+    "observacoes": "obs",
+    "imagemUrl": "2025-05-31/imagem-1748673621872-830532098.jpg",
+    "dataSugestao": "2025-05-31T03:40:21.130860",
+    "tipo": "nova_arvore",
+    "status": "pendente",
+    "timestampRecepcao": "2025-05-31T06:40:21.973Z"
+  },
+  {
+    "id": "1748673864247",
+    "latitude": -24.72979014708252,
+    "longitude": -53.74997729049506,
+    "nomeComum": "amém dia",
+    "nomeCientifico": null,
+    "descricao": null,
+    "enderecoAproximado": null,
+    "bairro": null,
+    "observacoes": null,
+    "imagemUrl": null,
+    "dataSugestao": "2025-05-31T03:44:23.679204",
+    "tipo": "nova_arvore",
+    "status": "pendente",
+    "timestampRecepcao": "2025-05-31T06:44:24.247Z"
+  }
+]
