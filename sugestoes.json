@@ -1,0 +1,114 @@
+[
+  {
+    "id": "1748029594464",
+    "latitude": -24.711842802628386,
+    "longitude": -53.742409122468864,
+    "comentario": "ubbbn",
+    "imagem": null,
+    "timestamp": "2025-05-23T19:46:34.466Z"
+  },
+  {
+    "id": "1748029630409",
+    "latitude": -24.733981338844327,
+    "longitude": -53.762391519106586,
+    "comentario": "bbbb",
+    "imagem": "uploads\\2025-05-23\\1748029630373.jpg",
+    "timestamp": "2025-05-23T19:47:10.409Z"
+  },
+  {
+    "id": "1748029676408",
+    "latitude": -24.276308424105597,
+    "longitude": -53.84420489025069,
+    "comentario": "bbbb",
+    "imagem": null,
+    "timestamp": "2025-05-23T19:47:56.408Z"
+  },
+  {
+    "id": "1748032652139",
+    "latitude": -24.73851473931679,
+    "longitude": -53.729530503540225,
+    "comentario": "Sem comentário",
+    "imagem": "uploads\\2025-05-23\\1748032652093.jpg",
+    "timestamp": "2025-05-23T20:37:32.139Z"
+  },
+  {
+    "id": "1748096495864",
+    "latitude": -24.72756011718937,
+    "longitude": -53.74706391839756,
+    "comentario": "kejej",
+    "imagem": null,
+    "timestamp": "2025-05-24T14:21:35.864Z"
+  },
+  {
+    "id": "1748648835508",
+    "latitude": -25.432,
+    "longitude": -49.275,
+    "comentario": "Teste via BAT script",
+    "imagem": "uploads\\2025-05-30\\1748648835505.jpg",
+    "timestamp": "2025-05-30T23:47:15.508Z"
+  },
+  {
+    "id": "1748648847261",
+    "latitude": -25.432,
+    "longitude": -49.275,
+    "comentario": "Teste via BAT script",
+    "imagem": "uploads\\2025-05-30\\1748648847260.jpg",
+    "timestamp": "2025-05-30T23:47:27.261Z"
+  },
+  {
+    "id": "1748651698949",
+    "latitude": -24.745609123909315,
+    "longitude": -53.71960747390996,
+    "comentario": "nfiasdhisa",
+    "imagem": null,
+    "timestamp": "2025-05-31T00:34:58.949Z"
+  },
+  {
+    "id": "1748651801317",
+    "latitude": -24.74569881849428,
+    "longitude": -53.72013897827368,
+    "comentario": "kfpfkpf",
+    "imagem": null,
+    "timestamp": "2025-05-31T00:36:41.317Z"
+  },
+  {
+    "id": "1748652049557",
+    "latitude": -24.69160686444554,
+    "longitude": -53.75204887504481,
+    "comentario": "fomsfo",
+    "imagem": null,
+    "timestamp": "2025-05-31T00:40:49.557Z"
+  },
+  {
+    "id": "1748656185349",
+    "latitude": -24.73851473931679,
+    "longitude": -53.729530503540225,
+    "comentario": "Sorry",
+    "imagem": null,
+    "timestamp": "2025-05-31T01:49:45.349Z"
+  },
+  {
+    "id": "1748656209245",
+    "latitude": -24.73851473931679,
+    "longitude": -53.729530503540225,
+    "comentario": "dia cg",
+    "imagem": "uploads\\2025-05-31\\1748656209174.jpg",
+    "timestamp": "2025-05-31T01:50:09.245Z"
+  },
+  {
+    "id": "1748670695768",
+    "latitude": -24.72747689111535,
+    "longitude": -53.738531546529856,
+    "comentario": "valeu",
+    "imagem": null,
+    "timestamp": "2025-05-31T05:51:35.768Z"
+  },
+  {
+    "id": "1748673273464",
+    "latitude": -24.72702981130705,
+    "longitude": -53.743126550263625,
+    "comentario": "valeu",
+    "imagem": null,
+    "timestamp": "2025-05-31T06:34:33.464Z"
+  }
+]

@@ -3,8 +3,11 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io'; // Para usar File
 import 'package:http/http.dart' as http; // Para requisições HTTP
 import 'package:http_parser/http_parser.dart'; // Para MediaType ao enviar arquivos
+import 'package:path/path.dart' as path;
 ////////////////////////////////////////////////
 import '../models/arvore.dart'; 
+import 'package:fruta_no_pe/core/config.dart';
+
 
 class SugestaoPage extends StatefulWidget {
   final Arvore arvore;
@@ -61,16 +64,20 @@ class _SugestaoPageState extends State<SugestaoPage> {
     });
 
     // IMPORTANTE: Substitua pela URL real do seu backend
-    final url = Uri.parse('https://SUA_URL_DE_BACKEND_AQUI/api/sugestao');
-    final request = http.MultipartRequest('POST', url);
+    final uri = Uri.parse('${AppConfig.baseUrl}/api/sugestao');
+    final request = http.MultipartRequest('POST', uri);
 
     // Adicionando campos de texto
     request.fields['arvoreId'] = widget.arvore.id;
     request.fields['nomeComumOriginal'] = widget.arvore.nomeComum;
     request.fields['nomeCientificoOriginal'] = widget.arvore.nomeCientifico.isNotEmpty ? widget.arvore.nomeCientifico : 'Não informado';
-    request.fields['sugestaoTexto'] = _controller.text;
+    request.fields['sugestaoTexto'] = _controller.text.isNotEmpty ? _controller.text : 'Sem comentário';
     request.fields['bairroOriginal'] = widget.arvore.bairro;
     request.fields['ruaOriginal'] = widget.arvore.nomeLogradouro;
+    // Adicionando coordenadas obrigatórias
+    request.fields['latitude'] = widget.arvore.latitude.toString();
+    request.fields['longitude'] = widget.arvore.longitude.toString();
+    request.fields['comentario'] = _controller.text.isNotEmpty ? _controller.text : 'Sem comentário';
 
     // Adicionando o arquivo de imagem, se selecionado
     if (_imagemSelecionada != null) {

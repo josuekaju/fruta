@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // For kDebugMode
+import 'dart:math';
 
 class LoadingOverlay extends StatefulWidget {
   final Stream<double>? progressStream; // Stream de 0.0 a 1.0
@@ -11,10 +12,86 @@ class LoadingOverlay extends StatefulWidget {
   State<LoadingOverlay> createState() => _LoadingOverlayState();
 }
 
-class _LoadingOverlayState extends State<LoadingOverlay> {
+class _LoadingOverlayState extends State<LoadingOverlay> with WidgetsBindingObserver {
   // Frase principal que ficará no centro
   static const String frasePrincipal = 'A natureza exige paciência...';
   static const String fraseEspecial = 'Não mexa na tela...';
+
+  // --- INÍCIO DAS CORREÇÕES ---
+
+  @override
+  void initState() {
+    super.initState();
+    print('🔄 [LoadingOverlay] initState chamado');
+    WidgetsBinding.instance.addObserver(this);
+    _iniciarFrases(); // Agora este método existirá
+  }
+
+  @override
+  void dispose() {
+    print('⏹️ [LoadingOverlay] dispose chamado');
+    _timer?.cancel(); // Movido do segundo dispose
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('📱 [LoadingOverlay] AppLifecycleState: $state');
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 [LoadingOverlay] App retomou, reiniciando animação...');
+      // Garante que as frases e o timer sejam reiniciados se necessário
+      // Se _timer já estiver ativo e as frases já carregadas, _iniciarFrases pode ter lógica para não fazer nada desnecessário
+      // ou pode simplesmente recomeçar o ciclo, dependendo do comportamento desejado.
+      _iniciarFrases(); // Agora este método existirá
+    } else if (state == AppLifecycleState.paused) {
+      print('⏸️ [LoadingOverlay] App pausado, limpando timer...');
+      _timer?.cancel();
+    }
+  }
+
+  // Método _iniciarFrases que faltava:
+  void _iniciarFrases() {
+    if (kDebugMode) print("[LoadingOverlay] _iniciarFrases - Início");
+
+    _timer?.cancel(); // Cancela qualquer timer anterior para evitar múltiplos timers
+
+    // Filtra as frases, excluindo a principal
+    // e a frase especial, pois ela será tratada à parte no início.
+    _frasesAlternantes = [
+      ..._grupo1.where((f) => f != frasePrincipal && f != fraseEspecial && f.isNotEmpty),
+      ..._grupo2.where((f) => f != frasePrincipal && f != fraseEspecial && f.isNotEmpty),
+    ]
+      .toSet() // Remove duplicatas entre _grupo1 e _grupo2
+      .toList(); // Converte de volta para lista
+    _frasesAlternantes.shuffle(); // Embaralha para variedade
+
+    if (kDebugMode) print("[LoadingOverlay] _iniciarFrases - Frases alternantes carregadas: ${_frasesAlternantes.length}");
+
+    // Reseta contadores e índices para um novo início
+    _contagemTopoEspecial = 0;
+    _contagemBaixoEspecial = 0;
+    // _indiceTopo = 0; // Não mais usado com Random, mas se voltasse, resetaria aqui
+    // _indiceBaixo = 0; // Não mais usado com Random, mas se voltasse, resetaria aqui
+    _opacidadeAlternantes = 1.0; // Garante opacidade inicial
+
+    // Configura a primeira exibição da fraseEspecial
+    _fraseTopo = fraseEspecial;
+    _fraseBaixo = fraseEspecial;
+
+    if (kDebugMode) print("[LoadingOverlay] _iniciarFrases - Primeira exibição especial: Topo='$_fraseTopo', Baixo='$_fraseBaixo'");
+
+    // Força uma atualização do estado para exibir as frases iniciais imediatamente
+    // antes do primeiro ciclo do timer começar.
+    // Isso é importante se _iniciarFrases for chamado quando o widget já está na tela (ex: app resume).
+    if (mounted) {
+      setState(() {});
+    }
+
+    _iniciarProximoCicloTimer();
+  }
+
+  // --- FIM DAS CORREÇÕES ---
 
 
   // Lista original de todas as frases
@@ -45,14 +122,12 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     'O planeta Terra, a nossa casa, cuide como seu jardim...',
     'A natureza é um tesouro que devemos proteger, a Mãe que nos dá a vida e nos sustenta...',
     'A guerra contra a natureza é uma guerra contra si mesmo'
-    
-
   ];
 
     // Grupo 2
     static const List<String> _grupo2 = [
     // A frase especial será tratada separadamente no início
-    'Devo proteger a terra...', 
+    'Devo proteger a terra...',
     'Plantando sementes de curiosidade...',
     'Vá em direção às árvores...',
     'Apareceu um arco-íris...',
@@ -64,7 +139,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     'Pergunte aos animais, e eles o ensinarão...',
     'Pergunte às aves do céu, e elas contarão a você...',
     'Fale com a terra, e ela o instruirá...',
-    'Não deixe que os peixes do mar nos informem...', 
+    'Não deixe que os peixes do mar nos informem...',
     'Cada árvore tem sua estação...',
     'Quem ofende um rio, ofende Deus...',
     'A destruição do ambiente ofende a Deus...',
@@ -77,13 +152,12 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     'Observem os pássaros...',
     'Já olhou a lua hoje?..',
     'Mais um dia, todo seu...',
-    'Que céu azul lou...',
+    'Que céu azul lo...',
     'É a selva de pedra... ela esmaga. ',
     'Não deixe que a natureza vire inimiga',
     'A cada amanhecer, um novo ciclo, uma nova oportunidade de viver...',
     'Matar a natureza é matar a todos...',
     'A beleza da natureza preenche a alma'
-
   ];
 
   // Lista de frases que irão alternar (excluindo a principal)
@@ -93,8 +167,8 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
   String _fraseBaixo = '';
   int _contagemTopoEspecial = 0;
   int _contagemBaixoEspecial = 0;
-  int _indiceTopo = 0;
-  int _indiceBaixo = 0;
+  // int _indiceTopo = 0; // Não usado mais com Random
+  // int _indiceBaixo = 0; // Não usado mais com Random
 
   double _opacidadeAlternantes = 1.0; // Opacidade para as frases topo e baixo
   Timer? _timer;
@@ -116,35 +190,12 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     fontWeight: FontWeight.w500,
   );
 
-  @override
-  void initState() {
-    super.initState();
-  if (kDebugMode) print("[LoadingOverlay] initState - Início");
+  // REMOVEMOS O SEGUNDO initState e dispose DAQUI
+  // O conteúdo deles foi movido para _iniciarFrases e para o primeiro dispose
 
-    // Filtra as frases, excluindo a principal
-    // e a frase especial, pois ela será tratada à parte no início.
-    _frasesAlternantes = [
-      ..._grupo1.where((f) => f != frasePrincipal && f != fraseEspecial && f.isNotEmpty),
-      ..._grupo2.where((f) => f != frasePrincipal && f != fraseEspecial && f.isNotEmpty),
-    ]
-      .toSet() // Remove duplicatas entre _grupo1 e _grupo2
-      .toList(); // Converte de volta para lista
-    _frasesAlternantes.shuffle(); // Embaralha para variedade
-
-    if (kDebugMode) print("[LoadingOverlay] initState - Frases alternantes (pós-especial) carregadas: ${_frasesAlternantes.length}");
-
-    // Configura a primeira exibição da fraseEspecial
-    _fraseTopo = fraseEspecial;
-    _fraseBaixo = fraseEspecial;
-  
-
-    if (kDebugMode) print("[LoadingOverlay] initState - Primeira exibição especial: Topo='$_fraseTopo', Baixo='$_fraseBaixo'");
-
-    _iniciarProximoCicloTimer();
-  }
 
   void _iniciarProximoCicloTimer() {
-    _timer?.cancel(); 
+    _timer?.cancel();
 
     Duration duracaoAtual = _getDuracaoParaFraseAtual();
     if (kDebugMode) print("[LoadingOverlay] Agendando timer para $duracaoAtual");
@@ -155,32 +206,36 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
         if (kDebugMode) print("[LoadingOverlay] Timer - Widget não montado, retornando.");
         return;
       }
-      setState(() {
-        if (kDebugMode) print("[LoadingOverlay] Timer - SetState para opacidadeAlternantes = 0.0");
-        _opacidadeAlternantes = 0.0; 
-      });
+      if (mounted) { // Adicionado "if (mounted)"
+        setState(() {
+          if (kDebugMode) print("[LoadingOverlay] Timer - SetState para opacidadeAlternantes = 0.0");
+          _opacidadeAlternantes = 0.0;
+        });
+      }
+
 
       Future.delayed(_duracaoFadeOut, () {
         if (kDebugMode) print("[LoadingOverlay] Future.delayed (_duracaoFadeOut) - Montado: $mounted");
         if (!mounted) return;
 
-        _atualizarFrasesAlternantes(); 
+        _atualizarFrasesAlternantes();
         if (kDebugMode) print("[LoadingOverlay] Future.delayed - Novas frases - Topo: '$_fraseTopo', Baixo: '$_fraseBaixo'");
-        
-        setState(() {
-          if (kDebugMode) print("[LoadingOverlay] Future.delayed - SetState para opacidadeAlternantes = 1.0");
-          _opacidadeAlternantes = 1.0; 
-        });
-        _iniciarProximoCicloTimer(); 
+
+        if (mounted) { // Adicionado "if (mounted)"
+          setState(() {
+            if (kDebugMode) print("[LoadingOverlay] Future.delayed - SetState para opacidadeAlternantes = 1.0");
+            _opacidadeAlternantes = 1.0;
+          });
+        }
+        _iniciarProximoCicloTimer();
       });
     });
   }
 
   Duration _getDuracaoParaFraseAtual() {
-    if (kDebugMode) print("[LoadingOverlay] _getDuracaoParaFraseAtual: Verificando duração. Topo='$_fraseTopo', Baixo='$_fraseBaixo', ContagemEspecial=$_contagemTopoEspecial");
+    if (kDebugMode) print("[LoadingOverlay] _getDuracaoParaFraseAtual: Verificando duração. Topo='$_fraseTopo', Baixo='$_fraseBaixo', ContagemTopoEspecial=$_contagemTopoEspecial");
 
     // 1. Tratar a fraseEspecial:
-    // Se _fraseTopo ou _fraseBaixo for a fraseEspecial, significa que estamos em um dos 3 ciclos da frase especial.
     if (_fraseTopo == fraseEspecial || _fraseBaixo == fraseEspecial) {
       if (kDebugMode) print("[LoadingOverlay] _getDuracaoParaFraseAtual: Frase especial ativa. Retornando _duracaoExibicaoGrupo2");
       return _duracaoExibicaoGrupo2;
@@ -188,7 +243,6 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
 
     // 2. Frases Alternantes: Determinar duração baseada no conteúdo de _fraseTopo E _fraseBaixo
     bool topoEmGrupo1 = _grupo1.contains(_fraseTopo);
-    // Considerar _fraseBaixo apenas se não estiver vazia
     bool baixoEmGrupo1 = _fraseBaixo.isNotEmpty && _grupo1.contains(_fraseBaixo);
 
     if (topoEmGrupo1 || baixoEmGrupo1) {
@@ -197,75 +251,61 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     }
 
     // 3. Duração padrão (para frases do Grupo 2 ou se algo inesperado acontecer)
-    // Todas as frases em _frasesAlternantes devem pertencer a _grupo1 ou _grupo2 (após filtragem).
     if (kDebugMode) print("[LoadingOverlay] _getDuracaoParaFraseAtual: Alternando - frases são do Grupo 2 ou padrão. Retornando _duracaoExibicaoGrupo2");
-    return _duracaoExibicaoGrupo2; // Duração padrão ou para frases do Grupo 2
+    return _duracaoExibicaoGrupo2;
   }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-  if (kDebugMode) print("[LoadingOverlay] dispose - Timer cancelado.");
-    super.dispose();
-  }
-
-
 
 
   void _atualizarFrasesAlternantes() {
+    final random = Random();
 
-  // Lógica para frase de baixo
-  if (_contagemBaixoEspecial < 1) {
-    _fraseBaixo = fraseEspecial;
-    _contagemBaixoEspecial++;
-  } else {
-    _fraseBaixo = _frasesAlternantes[_indiceBaixo % _frasesAlternantes.length];
-    _indiceBaixo++;
+    // Lógica para fraseEspecial
+    if (_contagemTopoEspecial < 2) { // Mantido como 2 ciclos para o topo como em overlay2
+      _fraseTopo = fraseEspecial;
+      _contagemTopoEspecial++;
+    } else {
+      if (_frasesAlternantes.isNotEmpty) { // Checagem para evitar erro com lista vazia
+        _fraseTopo = _frasesAlternantes[random.nextInt(_frasesAlternantes.length)];
+      } else {
+        _fraseTopo = ''; // Ou alguma frase padrão
+      }
+    }
+
+    if (_contagemBaixoEspecial < 1) {
+      _fraseBaixo = fraseEspecial;
+      _contagemBaixoEspecial++;
+    } else {
+      if (_frasesAlternantes.isNotEmpty) { // Checagem para evitar erro
+        if (_frasesAlternantes.length == 1 && _frasesAlternantes.first == _fraseTopo) {
+            // Caso especial: só uma frase alternante e é a mesma do topo
+            _fraseBaixo = _fraseTopo; // Ou string vazia, ou outra lógica
+        } else {
+            do {
+            _fraseBaixo = _frasesAlternantes[random.nextInt(_frasesAlternantes.length)];
+            } while (_fraseBaixo == _fraseTopo && _frasesAlternantes.length > 1); // Garante diferente se houver mais de uma opção
+        }
+      } else {
+          _fraseBaixo = ''; // Ou alguma frase padrão
+      }
+    }
   }
-
-  // Lógica para frase do topo
-  if (_contagemTopoEspecial < 1) {
-    _fraseTopo = fraseEspecial;
-    _contagemTopoEspecial++;
-  } else {
-    _fraseTopo = _frasesAlternantes[_indiceTopo % _frasesAlternantes.length];
-    _indiceTopo++;
-  }
-
-  // Garantir que não mostre a mesma frase nos dois lugares
-  // Esta condição verifica se ambas as frases vieram da lista _frasesAlternantes
-  // e se a lista tem mais de uma opção para escolher uma frase diferente.
-  if (_fraseTopo == _fraseBaixo &&
-      _frasesAlternantes.length > 1 &&
-      _contagemTopoEspecial >= 2 && // Significa que _fraseTopo veio de _frasesAlternantes
-      _contagemBaixoEspecial >= 1) { // Significa que _fraseBaixo veio de _frasesAlternantes
-    
-    // Se _fraseTopo e _fraseBaixo colidiram (eram a mesma frase P):
-    // _fraseTopo (para exibição) é P.
-    // _indiceTopo já foi incrementado e aponta para a próxima frase para o topo no ciclo seguinte.
-    // _indiceBaixo também já foi incrementado.
-
-    // Avança _indiceTopo um passo extra. Isso ajuda a evitar que o _fraseTopo do PRÓXIMO ciclo
-    // seja a frase que _fraseBaixo está prestes a ser resolvida NESTE ciclo.
-    _indiceTopo++;
-
-    // Resolve _fraseBaixo para a próxima frase disponível, usando o _indiceBaixo já incrementado.
-    _fraseBaixo = _frasesAlternantes[_indiceBaixo % _frasesAlternantes.length];
-    _indiceBaixo++; // Avança _indiceBaixo novamente para o seu próximo turno.
-  }
-}
-    
 
   @override
   Widget build(BuildContext context) {
   if (kDebugMode) print("[LoadingOverlay] build - fraseTopo: '$_fraseTopo', fraseBaixo: '$_fraseBaixo', opacidade: $_opacidadeAlternantes");
+    print('🎨 [LoadingOverlay] build chamado');
+
+    if (!mounted) {
+      print('⚠️ [LoadingOverlay] build chamado após dispose!');
+      return const SizedBox.shrink();
+    }
+
     return Container(
       color: Colors.black.withOpacity(0.7),
-      padding: const EdgeInsets.symmetric(vertical: 50.0, horizontal: 20.0), // Aumenta o padding vertical
-      child: Stack( // Alterado de Column para Stack
+      padding: const EdgeInsets.symmetric(vertical: 50.0, horizontal: 20.0),
+      child: Stack(
         children: [
-          // Frase do Topo (alternante)
-          Align( // Alinha ao topo central
+          Align(
             alignment: Alignment.topCenter,
             child: AnimatedOpacity(
               opacity: _opacidadeAlternantes,
@@ -278,11 +318,9 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
               ),
             ),
           ),
-
-          // Parte Central (agrupada para manter no meio)
-          Center( // Centraliza este conteúdo na Stack
+          Center(
             child: widget.progressStream == null
-                ? Column( // Conteúdo original se não houver stream de progresso
+                ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const CircularProgressIndicator(
@@ -296,20 +334,18 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                       ),
                     ],
                   )
-                : StreamBuilder<double>( // StreamBuilder para exibir o progresso
-                    stream: widget.progressStream, // Usar o stream passado para o widget
+                : StreamBuilder<double>(
+                    stream: widget.progressStream,
                     builder: (context, snapshot) {
-                      final progress = snapshot.data ?? 0.0; // Default para 0.0 se não houver dados ainda
+                      final progress = snapshot.data ?? 0.0;
                       return Text('Carregando ${(progress * 100).toStringAsFixed(1)}%', style: _estiloPrincipal, textAlign: TextAlign.center,);
                     },
                   ),
           ),
-
-          // Frase de Baixo (alternante)
-          Align( // Alinha à base central
+          Align(
             alignment: Alignment.bottomCenter,
-            child: Padding( // Adicionado Padding
-              padding: const EdgeInsets.only(bottom: 30.0), // Ajuste este valor conforme necessário
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 30.0),
               child: AnimatedOpacity(
                 opacity: _opacidadeAlternantes,
                 duration: _duracaoFadeOut,
