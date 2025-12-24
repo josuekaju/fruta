@@ -1,63 +1,71 @@
-# fruta
-mapeamento de arvores
+# fruta 
+mapeamento de arvores   	
 
 
-fruta_no_pefruta_no_pe/		
-│   ├── android/              <-- Diretório do projeto Android nativo    
-│   ├── app/              <-- Módulo principal da aplicação Android    
-│   │   ├── src/          <-- Código fonte (Kotlin/Java), recursos, Manifest    
-│   │   └── build.gradle.kts  <-- Script de build do módulo 'app' (configurações da aplicação)    
-│   ├── gradle/           <-- Arquivos do Gradle Wrapper    
-│   │   └── wrapper/    
-│   │       ├── gradle-wrapper.jar    
-│   │       └── gradle-wrapper.properties <-- Define a versão do Gradle    
-│   ├── build.gradle.kts  <-- Script de build do projeto Android (configurações globais)    
-│   ├── settings.gradle.kts <-- Configurações do Gradle (inclui módulos, repositórios, toolchains)    
-│   └── local.properties  <-- Configurações locais (caminho do SDK Flutter, SDK Android)    
-│ 	│
-│   │
-│   ├── ios/                   # Configurações iOS	  
-│   ├── assets/               <-- Ativos da aplicação (imagens, etc.)      
-│   │  ├─ icon/
-│   │  └─ images/    
-│   │    
-│   ├── lib/		  
-│   │  ├── home_page.dart     # Tela principal		  
-│   │  ├── mapa_widget.dart   # Widget do mapa		  
-│   │  ├── models/		  
-│   │  │   └── arvore.dart    # Modelo de dados das árvores		  
-│   │  ├── services/		  
-│   │  │   ├── geojson_loader.dart # Carregamento do GeoJSON		  
-│   │  │   └── species_counter_service.dart # Contagem de espécies		  
-│   │  ├── widgets/		  
-│   │  │   └── loading_overlay.dart # Tela de carregamento		  
-│   │  └── main.dart          # Ponto de entrada		  
-│   │    		  
-│   ├── assets/		
-│   │  ├── arvore.geojson     # Dados principais		  
-│   │  ├── especies_com_contagem_.csv # Dados de espécies				  
-│   │  └── images/            # Ícones		  
-│   │      └── treant.png		  
-│   │		  
-│   ├── banco_de_dados/        # Seus scripts Python  (ONDE COLOCAR O BANCO DE DADOS DA LISTA DE CIDADES? 		  
-│   │  ├── donwloads_DRZ_1_faltantes.py                   AS ARVORES DE TOLEDO ESTA EM ASSETS 'fruta_no_pe/assets/arvore_.geojson'		  
-│   │  ├── donwloads_DRZ_1.py		  
-│   │  ├── donwloads_DRZ_.py		
-│   │  └── lista_cidades_.py		        
-│   │		  
-│   ├── pubspec.yaml           # Dependências Flutter    
-│   └── README.md    
-│    
-│    
-fruta_no_pe_backend/    
-│   ├── uploads/             // Pasta para uploads temporários (se usar multer com dest)    
-│   ├── index.js             // Seu arquivo principal do servidor Node.js  
-│   ├── package.json         // Define dependências (express, multer, nodemailer, etc.)    
-│   ├── package-lock.json      
-│   └── node_modules/        // Pasta de dependências (gerada pelo npm install)      
-│    
-│    
-fruta_no_pe_scripts/       # Scripts Python ou IA para limpeza/análise dos SHP    
-│   └── limpeza_dados.py    
-│    
-│    
+C:\Users\aguia\Desktop\project\fruta_no_pe_suite_2\ 
+		├── fruta_no_pe\                # Projeto Flutter   
+		│   ├── android\                # Configurações específicas do Android  
+		│   │   ├── app\    
+		│   │   ├── gradle\    
+		│   │   ├── build.gradle.kts    
+		│   │   ├── settings.gradle.kts     
+		│   │   └── local.properties    
+		│   ├── ios\                    # Configurações específicas do iOS  
+		│   ├── lib\                    # Código Dart do aplicativo     
+		│   │   ├── main.dart   
+		│   │   ├── home_page.dart  
+		│   │   ├── mapa_widget.dart    
+		│   │   ├── models\ 
+		│   │   │   └── arvore.dart 
+		│   │   ├── services\   
+		│   │   │   ├── geojson_loader.dart 
+		│   │   │   └── species_counter_service.dart    
+		│   │   └── widgets\    
+		│   │       └── loading_overlay.dart    
+		│   ├── assets\                 # Ativos da aplicação   
+		│   │   ├── data\               # Arquivos de dados (GeoJSON, CSV, etc.)    
+		│   │   │   ├── arvore.geojson  
+		│   │   │   ├── especies_com_contagem.csv       
+		│   │   │   └── lista_cidades.json  # Exemplo para sua lista de cidades 
+		│   │   ├── images\             # Imagens e ícones  
+		│   │   │   ├── icon\           # Subpasta para ícones, se necessário   
+		│   │   │   └── treant.png  
+		│   ├── banco_de_dados\         # Seus scripts Python para processamento de dados   
+		│   │   ├── donwloads_DRZ_1_faltantes.py    
+		│   │   ├── donwloads_DRZ_1.py  
+		│   │   ├── donwloads_DRZ_.py   
+		│   │   └── lista_cidades_.py   
+		│   ├── .gitignore  
+		│   ├── pubspec.yaml    
+		│   └── README.md   
+		│   
+		└── fruta_no_pe_backend\        # Projeto Node.js Backend   
+		│   ├── .env        
+		│   ├── .gitignore      
+		│   ├── index.js                  # Ponto de entrada principal  
+		│   ├── package.json        
+		│   ├── package-lock.json         # Use o seu arquivo existente 
+		│   ├── config\ 
+		│   │   └── serverConfig.js 
+		│   ├── data\                     # Arquivos de dados JSON (sugestões)  
+		│   │   ├── sugestoes.json        # Use o seu arquivo existente 
+		│   │   └── sugestoesNovasArvores.json # Use o seu arquivo existente    
+		│   ├── middleware\ 
+		│   │   ├── errorHandler.js     
+		│   │   └── multerConfig.js     
+		│   ├── public\ 
+		│   │   └── index.html  
+		│   ├── routes\ 
+		│   │   └── sugestaoRoutes.js   
+		│   ├── controllers\    
+		│   │   └── sugestaoController.js   
+		│   ├── uploads\                  # Pasta para armazenar os arquivos enviados   
+		│   │   └── .gitkeep              # Para manter a pasta no Git  
+		│   └── utils\  
+		│       └── fileUtils.js    
+		│       
+		│       
+		└── fruta_no_pe_scripts/       # Scripts Python ou IA para limpeza/análise dos SHP     
+		│   └── limpeza_dados.py        
+		│       
+		│       

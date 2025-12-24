@@ -1,0 +1,19 @@
+    {
+    "name": "fruta_no_pe_backend",
+    "version": "1.0.0",
+    "description": "Backend para o aplicativo Fruta no Pé",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.5.0",
+        "express": "^4.21.2",
+        "multer": "^1.4.5-lts.1"
+    }
+}

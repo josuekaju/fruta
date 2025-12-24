@@ -1,4 +1,3 @@
-
 import 'dart:collection';
 import 'package:uuid/uuid.dart'; // Para SplayTreeSet, se quiser ordenação natural complexa
 ////////////////////////////////////////
@@ -93,7 +92,7 @@ class Arvore {
       descricao: sanitize(props['descricao'], ''),
       tipoEspe0: parseBool(props['tipo_espe0']),
       tipoEspe1: parseBool(props['tipo_espe1']),
-      tipoEspec: parsedTipoEspec,
+      tipoEspec: parsedTipoEspec, // Usa o valor já convertido para int
     );
   }
   static int _parseIdade(dynamic valor) {
