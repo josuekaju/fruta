@@ -1,6 +1,20 @@
 # fruta
-mapeamento de arvores
+Mapeamento de arvores
 
+<img width="300" height="300" alt="treant" src="https://github.com/user-attachments/assets/da88cddf-6ee3-4082-a675-d61767422252" />
+
+
+<img width="35%" height="35%" alt="1_1_" src="https://github.com/user-attachments/assets/f1da787c-30a1-404d-a5fa-000c2f3de7be" />
+
+<img width="35%" height="35%" alt="3_estudos" src="https://github.com/user-attachments/assets/006721a5-6870-470e-9f4e-3fd6438d3405" />
+<img width="35%" height="35%" alt="2_rara" src="https://github.com/user-attachments/assets/fae96cb5-98ff-46b2-bab4-a59e0613d8ed" />
+<img width="35%" height="35%" alt="5_rota" src="https://github.com/user-attachments/assets/9d884f7b-aa44-4e1e-b5da-757a7179fac2" />
+<img width="35%" height="35%" alt="2" src="https://github.com/user-attachments/assets/09c88636-8eb7-4ae1-8b9a-5a7736b250d9" />
+
+
+
+
+# Arquitetura do APP
 
 fruta_no_pe/
 ├── android/              <-- Diretório do projeto Android nativo    
