@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
+////////////////////////////////////////
 import '../models/arvore.dart';
 import '../services/geojson_loader.dart';
 import '../widgets/mapa_widget.dart';
+import '../services/localizacao_service.dart';
+import '../services/rota_service.dart'; // Importar o novo serviço de rota
+import '../widgets/loading_overlay.dart'; // Importar o novo widget de carregamento
+import '../services/species_counter_service.dart'; // Importar o novo serviço de contagem
+import 'package:fruta_no_pe/services/geojson_loader.dart' show CidadeDisponivel;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,24 +19,70 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final MapController mapController = MapController();
+  final RotaService _rotaService = RotaService(); // Instância do serviço de rota
   LatLngBounds? mapaBounds;
   bool _isLoading = true; // Adiciona um estado para controlar o carregamento inicial
   String? _loadingError; // Adiciona um estado para armazenar mensagens de erro
+  LatLng? _currentLocationMarkerPosition; // Novo estado para a posição do marcador do usuário
+  List<LatLng> _pontosDaRota = []; // Estado para armazenar os pontos da rota
+  bool _exibirRotaNoMapa = false; // Estado para controlar a visibilidade da rota
+
+  // Estado para controlar a cidade selecionada
+  CidadeDisponivel _cidadeSelecionada = CidadeDisponivel.toledo;
+
+  // Estados para o filtro de espécies frutíferas
+  String? _especieFrutiferaSelecionada;
+  List<String> _listaEspeciesFrutiferasDinamica = [];
+  Map<String, int> _especiesContagem = {}; // Para armazenar as contagens
 
   @override
   void initState() {
     super.initState();
+    print('🏠 HomePage.initState chamado');
     _carregarDadosArvores();
+    _atualizarPosicaoMapa();
+  }
+
+  // Atualiza a posição do mapa para o centro da cidade selecionada
+  void _atualizarPosicaoMapa() {
+    print('🔄 HomePage._atualizarPosicaoMapa chamado para cidade: $_cidadeSelecionada');
+    final cidadeInfo = cidadesInfo[_cidadeSelecionada];
+    if (cidadeInfo != null) {
+      // Adia a chamada para depois que o frame atual for construído
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) { // Verifica apenas se o widget ainda está montado
+          mapController.move(cidadeInfo.centro, cidadeInfo.zoomInicial);
+          print('🗺️ Mapa movido para ${cidadeInfo.nome} em ${cidadeInfo.centro} com zoom ${cidadeInfo.zoomInicial}');
+        } else if (mounted) {
+          print('⚠️ MapController não estava pronto em _atualizarPosicaoMapa. O mapa pode não ter sido movido.');
+        }
+      });
+    }
   }
 
   Future<void> _carregarDadosArvores() async {
     try {
-      final arvores = await GeoJsonLoader.carregarArvores();
+      // Carrega os dados da cidade selecionada
+      final processedData = await GeoJsonLoader.carregarEProcessarArvores(cidade: _cidadeSelecionada);
       if (mounted) {
-        _atualizarListas(arvores);
+        // Atribui os dados processados aos estados da HomePage
+        _todas = processedData.todas;
+        _catalogadas = processedData.catalogadas;
+        _frutiferas = processedData.frutiferas;
+        _flores = processedData.flores;
+        _naoCatalogadas = processedData.naoCatalogadas;
+        // Modifica o conteúdo do mapa existente em vez de reatribuir
+        recordistasPorCategoria.clear();
+        recordistasPorCategoria.addAll(processedData.recordistasPorCategoria);
+        _especiesContagem = await SpeciesCounterService.loadSpeciesCounts(); // Carrega as contagens
+        _extrairEspeciesFrutiferas(); // Extrai as espécies após carregar os dados
+
         setState(() {
           _isLoading = false;
         });
+        
+        // Atualiza a posição do mapa após carregar os dados
+        _atualizarPosicaoMapa();
       }
     } catch (e) {
       if (mounted) {
@@ -60,39 +112,80 @@ class _HomePageState extends State<HomePage> {
     'idade': [],
   };
 
-  void _atualizarListas(List<Arvore> arvores) {
-    _todas = arvores;
-    _frutiferas = arvores.where((a) => a.tipoEspe0).toList();
-    _flores = arvores.where((a) => a.tipoEspe1).toList();
-    // Corrigido: Verifica se tipoEspec é a string "0" para "não catalogadas"
-    _naoCatalogadas = arvores.where((a) => a.tipoEspec == 0).toList();
-    // Corrigido: Verifica se tipoEspec é diferente da string "0" para "catalogadas"
-    _catalogadas = arvores.where((a) => a.tipoEspec != 0).toList();
-    if (arvores.isNotEmpty) { // Calcula recordistas apenas se houver árvores
-      
-    print('Exemplo tipoEspec: ${_todas.take(5).map((a) => a.tipoEspec)}');
-
-
-    calcularRecordistas(arvores);
+  void _extrairEspeciesFrutiferas() {
+    if (_todas.isEmpty) {
+      _listaEspeciesFrutiferasDinamica = [];
+      return;
     }
-    if (mounted) setState(() {});
+    final Set<String> especies = {};
+    for (var arvore in _todas) {
+      // Usar arvore.tipoEspe0 para verificar se é frutífera
+      if (arvore.tipoEspe0 && arvore.nomeComum.trim().isNotEmpty) {
+        especies.add(arvore.nomeComum.trim());
+      }
+    }
+    _listaEspeciesFrutiferasDinamica = especies.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+  // A função _atualizarListas não é mais necessária da forma como era,
+  // pois os dados já vêm processados.
+  // A função calcularRecordistas também foi movida para o Isolate.
+  // Se precisar de alguma lógica de atualização PÓS carregamento que dependa
+  // de interação do usuário, ela pode ser mantida ou adaptada.
+
+  // Função para solicitar e definir a rota a ser exibida no mapa
+  Future<void> _mostrarRotaNoMapa(LatLng origem, LatLng destino) async {
+    final List<LatLng> pontos = await _rotaService.obterPontosDaRota(origem, destino);
+    if (mounted) {
+      setState(() {
+        _pontosDaRota = pontos;
+        _exibirRotaNoMapa = true;
+      });
+    }
   }
 
-  List<Arvore> aplicarFiltro() {
-    final List<Arvore> base = switch (filtroSelecionado) {
-      'frutiferas' => _frutiferas,
-      'flores' => _flores,
-      'nao_catalogadas' => _naoCatalogadas,
-      'curiosidades' => _todas,
-      _ => _catalogadas,
-    };
+  // Função para limpar a rota do mapa (pode ser chamada ao fechar o dialog ou mudar de árvore)
+  void _limparRotaDoMapa() => setState(() { _pontosDaRota = []; _exibirRotaNoMapa = false; });
 
-    if (filtroSelecionado == 'curiosidades' && subfiltroEspecial != null) {
-    return getRecordistas(base);
+  List<Arvore> aplicarFiltro() {
+    List<Arvore> base;
+    bool aplicarFiltroDeVisibilidadePadrao = true; // Controls map bounds and 420 limit
+
+    switch (filtroSelecionado) {
+      case 'frutiferas':
+        base = _frutiferas.where((arvore) {
+          if (_especieFrutiferaSelecionada == null || _especieFrutiferaSelecionada!.isEmpty) {
+            return true;
+          }
+          return arvore.nomeComum.trim().toLowerCase() == _especieFrutiferaSelecionada!.trim().toLowerCase();
+        }).toList();
+        break;
+      case 'flores':
+        base = _flores;
+        break;
+      case 'nao_catalogadas':
+        base = _naoCatalogadas;
+        break;
+      case 'curiosidades':
+        if (subfiltroEspecial != null) {  
+          base = getRecordistas(_todas); // getRecordistas já filtra e pega o top 10
+          aplicarFiltroDeVisibilidadePadrao = false; // Não aplica limite de mapa/visibilidade para recordistas
+        } else {
+          base = _todas; // Se 'curiosidades' for selecionado sem subfiltro
+        }
+        break;
+      default: // 'todas' (catalogadas)
+        base = _catalogadas;
+        break;
     }
 
-    final visiveis = base.where(dentroDoMapa).toList();
-    return visiveis.length > 420 ? visiveis.take(420).toList() : visiveis;
+    if (aplicarFiltroDeVisibilidadePadrao) {
+      final visiveis = base.where(dentroDoMapa).toList();
+      return visiveis.length > 420 ? visiveis.take(420).toList() : visiveis;
+    } else {
+      // Para recordistas, eles já são limitados.
+      // Se eles também precisarem estar dentro dos limites do mapa, adicione: base = base.where(dentroDoMapa).toList();
+      return base;
+    }
   }
 
   bool dentroDoMapa(Arvore a) {
@@ -135,28 +228,6 @@ class _HomePageState extends State<HomePage> {
     return validas.take(10).toList();
   }
 
-  void calcularRecordistas(List<Arvore> arvores) {
-    recordistasPorCategoria['altura'] = _topN(arvores, (a) => a.altura);
-    recordistasPorCategoria['idade'] = _topN(arvores, (a) => a.idadeAproximada.toDouble());
-    recordistasPorCategoria['circunfere'] = _topN(arvores, (a) => a.circunfere);
-    recordistasPorCategoria['diametro'] = _topN(arvores, (a) => a.diametroE);
-    recordistasPorCategoria['dap'] = _topN(arvores, (a) => a.dap);
-    
-
-    // Logs de debug
-    print('TOP Alturas: ${recordistasPorCategoria['altura']?.map((a) => a.altura.toStringAsFixed(1)).join(', ')}m');
-    print('TOP DAPs: ${recordistasPorCategoria['dap']?.map((a) => a.dap.toStringAsFixed(1)).join(', ')}cm');
-    print('TOP Idades: ${recordistasPorCategoria['idade']?.map((a) => a.idadeAproximada).join(', ')} anos');
-    print('TOP Circunferências: ${recordistasPorCategoria['circunfere']?.map((a) => a.circunfere.toStringAsFixed(1)).join(', ')}cm');
-    print('TOP Diâmetros: ${recordistasPorCategoria['diametro']?.map((a) => a.diametroE.toStringAsFixed(1)).join(', ')}cm');
-  } 
-
-  List<Arvore> _topN(List<Arvore> lista, double Function(Arvore) key) {
-    final validas = lista.where((a) => key(a) > 0).toList();
-    validas.sort((a, b) => key(b).compareTo(key(a)));
-    return validas.take(10).toList();
-  }
-
   // Função auxiliar para obter o valor da categoria para depuração
   double _getValorDaCategoriaParaDebug(Arvore arvore, String categoria) {
     switch (categoria) {
@@ -190,6 +261,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    print('🔧 HomePage.build executado');
     return Scaffold(
       appBar: AppBar(title: const Text('Fruta no Pé')),
       drawer: construirDrawer(),
@@ -204,27 +276,15 @@ class _HomePageState extends State<HomePage> {
                 setState(() => mapaBounds = bounds);
               }
             },
+            currentUserLocation: _currentLocationMarkerPosition, // Passar a posição atual
+            subfiltroEspecial: subfiltroEspecial, // Passar o subfiltro para o MapaWidget
+            pontosDaRota: _pontosDaRota, // Passar os pontos da rota
+            exibirRota: _exibirRotaNoMapa, // Passar o controle de visibilidade da rota
+            onMostrarRota: _mostrarRotaNoMapa, // Passar a callback para mostrar a rota
+            centroInicial: cidadesInfo[_cidadeSelecionada]!.centro, // Centro inicial baseado na cidade
+            zoomInicial: cidadesInfo[_cidadeSelecionada]!.zoomInicial, // Zoom inicial baseado na cidade
           ),
-          if (_isLoading)
-            // Tela de carregamento personalizada
-            Container(
-              color: Colors.black.withOpacity(0.7), // Fundo escuro semi-transparente
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'A natureza exige paciência...',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          if (_isLoading) const LoadingOverlay(),
           if (_loadingError != null)
             Center(
               child: Container(
@@ -232,12 +292,45 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.red.withOpacity(0.6),
                 child: Text(
                   _loadingError!,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Color.fromARGB(255, 189, 189, 189)),
                   textAlign: TextAlign.center,
                 ),
               ),
             ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final posicao = await LocalizacaoService.obterLocalizacao();
+          if (posicao != null) {
+            final newLocation = LatLng(posicao.latitude, posicao.longitude);
+            if (mounted) { // Verifica se o widget ainda está montado
+              setState(() {
+                _currentLocationMarkerPosition = newLocation; // Atualiza a posição do marcador
+                _limparRotaDoMapa(); // Limpa qualquer rota existente ao buscar nova localização
+              });
+            }
+            // Adia a movimentação do mapa para após o frame
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) { // Verifica apenas se o widget ainda está montado
+                mapController.move( // Verifica apenas se o widget ainda está montado
+                  newLocation,
+                  17.0, // Zoom level, ajuste conforme necessário
+                );
+                print('🗺️ Mapa movido para a localização do usuário: $newLocation');
+              }
+            });
+          } else {
+            // Verifica se o widget ainda está montado antes de mostrar o SnackBar
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Não foi possível obter sua localização.')),
+            );
+          }
+        },
+        tooltip: 'Minha Localização',
+        child: const Icon(Icons.my_location),
       ),
     );
   }
@@ -254,7 +347,50 @@ class _HomePageState extends State<HomePage> {
               // Faz o fundo do DrawerHeader transparente para usar o backgroundColor do Drawer
               color: Colors.transparent,
             ),
-            child: const Text('Filtros'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Cidade', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<CidadeDisponivel>(
+                  value: _cidadeSelecionada,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  ),
+                  isExpanded: true,
+                  items: CidadeDisponivel.values.map((cidade) {
+                    return DropdownMenuItem<CidadeDisponivel>(
+                      value: cidade,
+                      child: Text(
+                        cidade.toString().split('.').last[0].toUpperCase() + 
+                        cidade.toString().split('.').last.substring(1)
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (CidadeDisponivel? novaCidade) async {
+                    if (novaCidade != null && novaCidade != _cidadeSelecionada) {
+                      setState(() {
+                        _cidadeSelecionada = novaCidade;
+                        _isLoading = true;
+                        // Limpa os filtros ao mudar de cidade
+                        filtroSelecionado = 'todas';
+                        _especieFrutiferaSelecionada = null;
+                        subfiltroEspecial = null;
+                        _limparRotaDoMapa();
+                      });
+                      // Recarrega os dados da nova cidade e centraliza o mapa
+                      await _carregarDadosArvores();
+                      _atualizarPosicaoMapa();
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                const Text('Filtros', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
           for (var f in filtros)
             ListTile(
@@ -276,17 +412,59 @@ class _HomePageState extends State<HomePage> {
                   setState(() {
                     filtroSelecionado = value!;
                     subfiltroEspecial = null;
+                    if (value != 'frutiferas')
+                    _especieFrutiferaSelecionada = null; // Reseta a espécie selecionada
+                    _limparRotaDoMapa(); // Limpa a rota ao mudar de filtro principal
                   });
                   Navigator.pop(context);
                 },
               ),
             ),
+          // Adiciona o Dropdown de espécies se o filtro "Frutíferas" estiver selecionado
+          if (filtroSelecionado == 'frutiferas') ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0), // Ajusta padding
+              child: DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Selecionar Espécie',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                ),
+                value: _especieFrutiferaSelecionada,
+                hint: const Text('Todas as espécies'),
+                isExpanded: true,
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null, // Representa "Todas as espécies"
+                    child: Text('Todas as espécies'),
+                  ),
+                  ..._listaEspeciesFrutiferasDinamica.map((String especie) {
+                    return DropdownMenuItem<String>(
+                      value: especie,
+                      // Exibe o nome da espécie e sua contagem
+                      child: Text('$especie (${_especiesContagem[especie] ?? 0})'),
+                    );
+                  }).toList(),
+                ],
+                onChanged: (String? novoValor) {
+                  setState(() => _especieFrutiferaSelecionada = novoValor);
+                },
+              ),
+            ),
+          ],
+          
+
+
+
           if (filtroSelecionado == 'curiosidades') ...[
             const Divider(),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text('Subfiltro', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
+            // Adiciona 'frutiferas_por_especie' à lista de subfiltros
             for (var s in ['altura', 'idade', 'circunfere', 'diametro', 'dap'])
               ListTile(
                 title: Text(
@@ -306,7 +484,11 @@ class _HomePageState extends State<HomePage> {
                   value: s,
                   groupValue: subfiltroEspecial,
                   onChanged: (value) {
-                    setState(() => subfiltroEspecial = value);
+                    setState(() {
+                       subfiltroEspecial = value;
+                       _especieFrutiferaSelecionada = null; // Reseta a espécie ao mudar de subfiltro
+                       _limparRotaDoMapa(); // Limpa a rota ao mudar de subfiltro
+                    });
                     Navigator.pop(context);
                   },
                 ),
